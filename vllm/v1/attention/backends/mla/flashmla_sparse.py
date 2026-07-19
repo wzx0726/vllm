@@ -245,6 +245,7 @@ class FlashMLASparseMetadataBuilder(AttentionMetadataBuilder[FlashMLASparseMetad
         self.model_config = vllm_config.model_config
         parallel_config = vllm_config.parallel_config
         self.device = device
+        self.use_pcp = parallel_config.prefill_context_parallel_size > 1
 
         # Classify single-token queries (plus num_speculative_tokens via
         # supports_spec_as_decode=True) as decodes; longer queries go to
@@ -355,6 +356,7 @@ class FlashMLASparseMetadataBuilder(AttentionMetadataBuilder[FlashMLASparseMetad
                 common_attn_metadata,
                 decode_threshold=self.reorder_batch_threshold or 1,
                 require_uniform=True,
+                treat_short_extends_as_decodes=not self.use_pcp,
             )
         )
 

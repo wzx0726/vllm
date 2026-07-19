@@ -186,6 +186,20 @@ def test_create_cpu_offloading_spec_end_to_end():
     assert spec.num_blocks > 0
 
 
+def test_offloading_spec_kv_sharding_ignores_prefill_context_parallel():
+    config = _make_vllm_config(
+        cpu_bytes_to_use=65536,
+        extra_config={"block_size": 64},
+    )
+    config.parallel_config.prefill_context_parallel_size = 2
+
+    spec = OffloadingSpecFactory.create_spec(config, _make_kv_cache_config())
+
+    assert spec.gpu_block_size == (16,)
+    assert spec.hash_block_size == 16
+    assert spec.block_size_factor == 4
+
+
 # ---------------------------------------------------------------------------
 # Dynamic import via spec_module_path
 # ---------------------------------------------------------------------------

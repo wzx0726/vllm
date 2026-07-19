@@ -283,6 +283,7 @@ class FlashInferMLASparseMetadataBuilder(
         self.kv_cache_spec = kv_cache_spec
         self.model_config = vllm_config.model_config
         self.device = device
+        self.use_pcp = vllm_config.parallel_config.prefill_context_parallel_size > 1
 
         self.mla_dims = get_mla_dims(self.model_config)
         self.topk_tokens = vllm_config.model_config.hf_config.index_topk
@@ -311,7 +312,7 @@ class FlashInferMLASparseMetadataBuilder(
         num_decodes, _, num_decode_tokens, _ = split_decodes_and_prefills(
             cm,
             decode_threshold=self.reorder_batch_threshold,
-            treat_short_extends_as_decodes=True,
+            treat_short_extends_as_decodes=not self.use_pcp,
         )
 
         # Build req_id_per_token mapping

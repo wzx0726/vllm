@@ -307,6 +307,9 @@ class DeepseekSparseSWAMetadataBuilder(AttentionMetadataBuilder):
         self.max_num_batched_tokens = (
             self.vllm_config.scheduler_config.max_num_batched_tokens
         )
+        self.use_pcp = (
+            self.vllm_config.parallel_config.prefill_context_parallel_size > 1
+        )
 
         # Handle MTP: adjust decode_threshold like the indexer does
         spec_config = self.vllm_config.speculative_config
@@ -412,7 +415,9 @@ class DeepseekSparseSWAMetadataBuilder(AttentionMetadataBuilder):
         # Split into decode and prefill portions using configurable threshold
         (num_decodes, num_prefills, num_decode_tokens, num_prefill_tokens) = (
             split_decodes_and_prefills(
-                common_attn_metadata, decode_threshold=self.decode_threshold
+                common_attn_metadata,
+                decode_threshold=self.decode_threshold,
+                treat_short_extends_as_decodes=not self.use_pcp,
             )
         )
 
