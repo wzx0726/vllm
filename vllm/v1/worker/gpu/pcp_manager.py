@@ -57,7 +57,9 @@ class PCPManager:
         dcp_world_size: int = 1,
         dcp_rank: int = 0,
         cp_interleave: int = 1,
+        vllm_config: VllmConfig | None = None,
     ) -> None:
+        self.vllm_config = vllm_config
         self.pcp_world_size = pcp_world_size
         self.pcp_rank = pcp_rank
         self.device = device
@@ -124,15 +126,13 @@ class PCPManager:
         )
 
     @staticmethod
-    def validate_config(
+    def _validate_common_config(
         vllm_config: VllmConfig,
         supports_mm_inputs: bool,
     ) -> None:
+        """Validate constraints shared by all MRV2 PCP managers."""
         parallel_config = vllm_config.parallel_config
         model_config = vllm_config.model_config
-        pcp_size = parallel_config.prefill_context_parallel_size
-        if pcp_size <= 1:
-            return
 
         if parallel_config.pipeline_parallel_size > 1:
             raise NotImplementedError("MRV2 PCP does not support PP yet.")
@@ -148,6 +148,21 @@ class PCPManager:
             raise NotImplementedError(
                 "MRV2 PCP does not support speculative decoding yet."
             )
+
+    @staticmethod
+    def validate_config(
+        vllm_config: VllmConfig,
+        supports_mm_inputs: bool,
+    ) -> None:
+        parallel_config = vllm_config.parallel_config
+        model_config = vllm_config.model_config
+        pcp_size = parallel_config.prefill_context_parallel_size
+        if pcp_size <= 1:
+            return
+
+        if not model_config.use_mla:
+            raise NotImplementedError("MRV2 PCP currently supports MLA models only.")
+        PCPManager._validate_common_config(vllm_config, supports_mm_inputs)
         is_sparse_mla = hasattr(model_config.hf_text_config, "index_topk")
         if (
             is_sparse_mla
@@ -731,4 +746,5 @@ def maybe_build_pcp_manager(
         dcp_world_size=dcp_size,
         dcp_rank=dcp_rank,
         cp_interleave=parallel_config.cp_kv_cache_interleave_size,
+        vllm_config=vllm_config,
     )
