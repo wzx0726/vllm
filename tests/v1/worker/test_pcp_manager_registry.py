@@ -125,6 +125,7 @@ def test_maybe_build_uses_registered_manager(monkeypatch, test_manager_name):
     assert isinstance(manager, DummyPCPManager)
     assert DummyPCPManager.validated_config == (vllm_config, True)
     assert DummyPCPManager.init_kwargs == {
+        "vllm_config": vllm_config,
         "pcp_world_size": 4,
         "pcp_rank": 2,
         "device": device,
