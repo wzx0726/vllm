@@ -128,6 +128,24 @@ def test_v2_model_runner_env_tri_state(monkeypatch, env_value, expected):
     assert envs.VLLM_USE_V2_MODEL_RUNNER is expected
 
 
+def test_gqa_pcp_not_marked_unsupported_for_v2():
+    config = VllmConfig()
+    config.model_config = SimpleNamespace(
+        use_mla=False,
+        enable_return_routed_experts=False,
+        logits_processors=None,
+        enable_prompt_embeds=False,
+        runner_type="generate",
+        logprobs_mode="raw_logprobs",
+    )
+    config.parallel_config.prefill_context_parallel_size = 2
+
+    with patch("importlib.metadata.entry_points", return_value=[]):
+        unsupported = config._get_v2_model_runner_unsupported_features()
+
+    assert "prefill context parallelism" not in unsupported
+
+
 def test_rocm_keeps_compiled_deepseek_defaults(monkeypatch):
     """ROCm keeps DeepSeek V3.2 and V4 on their compiled MRV1 paths."""
     from vllm.config.vllm import (
